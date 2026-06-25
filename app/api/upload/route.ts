@@ -81,10 +81,11 @@ export async function POST(request: Request) {
       console.log(
         `[upload] 图片尺寸调整: ${width}x${height} → ${resizeWidth}x${resizeHeight}`
       );
-      buffer = await sharp(buffer)
+      const resized = await sharp(Uint8Array.from(buffer))
         .resize(resizeWidth, resizeHeight, { fit: "inside" })
         .toFormat(ext === "jpg" ? "jpeg" : (ext as "png" | "jpeg" | "webp"))
         .toBuffer();
+      buffer = Buffer.from(resized);
     }
 
     // 生成唯一文件名
