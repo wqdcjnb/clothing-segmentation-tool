@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     // ---- 尺寸校验 + 自动缩放 ----
-    const metadata = await sharp(buffer).metadata();
+    const metadata = await sharp(Uint8Array.from(buffer)).metadata();
     const width = metadata.width || 0;
     const height = metadata.height || 0;
     const longSide = Math.max(width, height);
