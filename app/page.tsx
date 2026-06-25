@@ -56,8 +56,8 @@ export default function HomePage() {
       setError("请选择图片文件");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("图片大小不能超过 5MB");
+    if (file.size > 10 * 1024 * 1024) {
+      setError("图片大小不能超过 10MB");
       return;
     }
 
@@ -248,7 +248,7 @@ export default function HomePage() {
                   {dragging ? "松开鼠标上传" : "点击上传或拖拽图片到此处"}
                 </p>
                 <p className="text-sm text-gray-400 mt-2">
-                  支持 PNG / JPG / WebP，最大 5MB，请确保图片中只有一位模特
+                  支持 PNG / JPG / WebP，最大 10MB，请确保图片中只有一位模特
                 </p>
               </>
             )}

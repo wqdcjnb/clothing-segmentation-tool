@@ -1,6 +1,7 @@
 /**
  * POST /api/upload
- * 接收 base64 图片，保存到 data/uploads/，返回可访问 URL
+ * 接收 base64 图片，校验尺寸（DashScope 要求：短边 > 400，长边 < 7000），
+ * 必要时自动缩放，保存到 data/uploads/，返回可访问 URL
  *
  * 说明：不在 public/ 下写入是因为 Next.js 生产模式不会服务运行时新增的文件。
  */
@@ -8,8 +9,13 @@ import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import sharp from "sharp";
 
 const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
+
+/** DashScope 图片尺寸限制 */
+const MIN_SIDE = 400;
+const MAX_SIDE = 7000;
 
 export async function POST(request: Request) {
   try {
@@ -34,14 +40,51 @@ export async function POST(request: Request) {
     const mime = matches[1]; // image/png, image/jpeg, etc.
     const pure = matches[2];
     const ext = mime.split("/")[1] || "png";
-    const buffer = Buffer.from(pure, "base64");
+    let buffer = Buffer.from(pure, "base64");
 
-    // 限制文件大小：最大 5MB
-    if (buffer.length > 5 * 1024 * 1024) {
+    // 限制文件大小：最大 10MB（放宽一些，因为可能高分辨率）
+    if (buffer.length > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { success: false, message: "图片大小不能超过 5MB" },
+        { success: false, message: "图片大小不能超过 10MB" },
         { status: 400 }
       );
+    }
+
+    // ---- 尺寸校验 + 自动缩放 ----
+    const metadata = await sharp(buffer).metadata();
+    const width = metadata.width || 0;
+    const height = metadata.height || 0;
+    const longSide = Math.max(width, height);
+    const shortSide = Math.min(width, height);
+
+    let needsResize = false;
+    let resizeWidth = width;
+    let resizeHeight = height;
+
+    // 短边太小 → 等比放大
+    if (shortSide < MIN_SIDE) {
+      const scale = MIN_SIDE / shortSide;
+      resizeWidth = Math.round(width * scale);
+      resizeHeight = Math.round(height * scale);
+      needsResize = true;
+    }
+
+    // 长边太大 → 等比缩小
+    if (longSide > MAX_SIDE) {
+      const scale = MAX_SIDE / longSide;
+      resizeWidth = Math.round(resizeWidth * scale);
+      resizeHeight = Math.round(resizeHeight * scale);
+      needsResize = true;
+    }
+
+    if (needsResize) {
+      console.log(
+        `[upload] 图片尺寸调整: ${width}x${height} → ${resizeWidth}x${resizeHeight}`
+      );
+      buffer = await sharp(buffer)
+        .resize(resizeWidth, resizeHeight, { fit: "inside" })
+        .toFormat(ext === "jpg" ? "jpeg" : (ext as "png" | "jpeg" | "webp"))
+        .toBuffer();
     }
 
     // 生成唯一文件名
