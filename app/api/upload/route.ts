@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     const protocol = forwardedProto
       || (host.startsWith("localhost") ? "http" : "https");
     const url = `${protocol}://${host}/api/uploads/${filename}`;
+    console.log("[upload] 图片上传完成，URL:", url);
 
     return NextResponse.json({ success: true, url, filename });
   } catch (err: any) {

@@ -33,6 +33,8 @@ export async function POST(request: Request) {
       }
     }
 
+    console.log("[segment] 传给 DashScope 的 URL:", imageUrl);
+
     const result = await segmentClothing({
       imageUrl,
       clothesType: clothesType || ["upper"],
