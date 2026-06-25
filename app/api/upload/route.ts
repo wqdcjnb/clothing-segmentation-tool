@@ -1,11 +1,15 @@
 /**
  * POST /api/upload
- * 接收 base64 图片，保存到 public/uploads/，返回公网 URL
+ * 接收 base64 图片，保存到 data/uploads/，返回可访问 URL
+ *
+ * 说明：不在 public/ 下写入是因为 Next.js 生产模式不会服务运行时新增的文件。
  */
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+
+const UPLOADS_DIR = path.join(process.cwd(), "data", "uploads");
 
 export async function POST(request: Request) {
   try {
@@ -42,19 +46,17 @@ export async function POST(request: Request) {
 
     // 生成唯一文件名
     const filename = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
 
     // 确保目录存在
-    await mkdir(uploadsDir, { recursive: true });
+    await mkdir(UPLOADS_DIR, { recursive: true });
 
     // 写入文件
-    const filePath = path.join(uploadsDir, filename);
-    await writeFile(filePath, buffer);
+    await writeFile(path.join(UPLOADS_DIR, filename), buffer);
 
-    // 构建公网 URL
+    // 构建公网 URL（通过 /api/uploads/ 路由提供服务）
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = host.startsWith("localhost") ? "http" : "https";
-    const url = `${protocol}://${host}/uploads/${filename}`;
+    const url = `${protocol}://${host}/api/uploads/${filename}`;
 
     return NextResponse.json({ success: true, url, filename });
   } catch (err: any) {

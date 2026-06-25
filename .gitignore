@@ -8,6 +8,9 @@
 .env.local
 .env.*.local
 
+# runtime uploads
+data/
+
 # next.js
 .next/
 out/
