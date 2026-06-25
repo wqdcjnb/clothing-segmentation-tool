@@ -55,7 +55,10 @@ export async function POST(request: Request) {
 
     // 构建公网 URL（通过 /api/uploads/ 路由提供服务）
     const host = request.headers.get("host") || "localhost:3000";
-    const protocol = host.startsWith("localhost") ? "http" : "https";
+    // 优先用 nginx 转发的协议头，其次看是否 localhost，默认 http
+    const forwardedProto = request.headers.get("x-forwarded-proto");
+    const protocol = forwardedProto
+      || (host.startsWith("localhost") ? "http" : "https");
     const url = `${protocol}://${host}/api/uploads/${filename}`;
 
     return NextResponse.json({ success: true, url, filename });
